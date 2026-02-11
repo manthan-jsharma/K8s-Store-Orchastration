@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.storeName }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.storeName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.storeName }}
+    spec:
+      containers:
+      - name: medusa-backend
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        env:
+        - name: DATABASE_URL
+          value: "postgres://postgres:{{ .Values.postgres.password }}@localhost:5432/medusa"
+        - name: REDIS_URL
+          value: "redis://localhost:6379"
+        ports:
+        - containerPort: 9000
+      # Sidecar Database (To save money on AWS, we run DB in same pod)
+      - name: postgres
+        image: postgres:14-alpine
+        env:
+        - name: POSTGRES_PASSWORD
+          value: {{ .Values.postgres.password }}
+        volumeMounts:
+        - name: db-data
+          mountPath: /var/lib/postgresql/data
+      - name: redis
+        image: redis:alpine
+      volumes:
+      - name: db-data
+        persistentVolumeClaim:
+          claimName: {{ .Values.storeName }}-pvc

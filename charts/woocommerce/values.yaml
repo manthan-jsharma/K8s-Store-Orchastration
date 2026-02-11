@@ -1,0 +1,13 @@
+storeName: "default-store"
+baseDomain: "127.0.0.1.nip.io" 
+
+resources:
+  requests: { cpu: "100m", memory: "256Mi" }
+  limits: { cpu: "500m", memory: "512Mi" }
+
+persistence:
+  size: "2Gi"
+  storageClass: "" 
+
+security:
+  allowMonitoring: true

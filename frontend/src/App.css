@@ -1,0 +1,248 @@
+:root {
+  --bg-color: #f3f4f6;
+  --sidebar-bg: #111827;
+  --card-bg: #ffffff;
+  --primary: #2563eb;
+  --danger: #ef4444;
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+}
+
+.app-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  background-color: var(--sidebar-bg);
+  color: white;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 40px;
+}
+
+.sidebar nav button {
+  background: none;
+  border: none;
+  width: 100%;
+  padding: 12px;
+  color: #9ca3af;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  font-size: 0.95rem;
+}
+
+.sidebar nav button:hover,
+.sidebar nav button.active {
+  background-color: #374151;
+  color: white;
+}
+
+/* Content */
+.content {
+  flex: 1;
+  padding: 40px;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.refresh-btn {
+  background: white;
+  border: 1px solid #e5e7eb;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Create Card */
+.create-card {
+  background: var(--card-bg);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 32px;
+}
+
+.create-form {
+  display: flex;
+  gap: 20px;
+  align-items: flex-end;
+}
+
+.input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.input-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.input-group input,
+.input-group select {
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.deploy-btn {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 11px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.deploy-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Stores Grid */
+.stores-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.store-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+}
+
+.store-header {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.store-icon {
+  background: #eff6ff;
+  color: var(--primary);
+  padding: 10px;
+  border-radius: 8px;
+  height: fit-content;
+}
+
+.store-header h3 {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #d1fae5;
+  color: #065f46;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.store-details {
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.store-details p {
+  margin: 4px 0;
+}
+.store-details a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.store-actions {
+  display: flex;
+  gap: 10px;
+  border-top: 1px solid #f3f4f6;
+  padding-top: 15px;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  cursor: pointer;
+  border: 1px solid #e5e7eb;
+}
+
+.action-btn.view {
+  background: white;
+  color: var(--text-main);
+}
+.action-btn.delete {
+  background: #fef2f2;
+  color: var(--danger);
+  border-color: #fecaca;
+}
+
+/* Developer Tab */
+.developer-section {
+  background: var(--card-bg);
+  padding: 30px;
+  border-radius: 12px;
+}
+
+.code-block {
+  margin-top: 20px;
+  background: #1f2937;
+  color: #e5e7eb;
+  padding: 20px;
+  border-radius: 8px;
+  font-family: "Courier New", Courier, monospace;
+  overflow-x: auto;
+}

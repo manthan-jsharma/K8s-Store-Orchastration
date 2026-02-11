@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.storeName }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.storeName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.storeName }}
+    spec:
+      securityContext:
+        runAsUser: 33
+        fsGroup: 33
+      containers:
+      - name: wordpress
+        image: wordpress:6.4-apache
+        resources: {{ toYaml .Values.resources | nindent 10 }}
+        env:
+        - name: WORDPRESS_DB_HOST
+          value: "127.0.0.1"
+        - name: WORDPRESS_DB_USER
+          value: "root"
+        - name: WORDPRESS_DB_PASSWORD
+          value: {{ .Values.mysql.rootPassword | quote }}
+        volumeMounts:
+        - name: wp-data
+          mountPath: /var/www/html
+        livenessProbe:
+          httpGet:
+            path: /wp-login.php
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      - name: mysql
+        image: mariadb:10.6
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: {{ .Values.mysql.rootPassword | quote }}
+        volumeMounts:
+        - name: db-data
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: wp-data
+        persistentVolumeClaim:
+          claimName: wp-pvc
+      - name: db-data
+        persistentVolumeClaim:
+          claimName: db-pvc

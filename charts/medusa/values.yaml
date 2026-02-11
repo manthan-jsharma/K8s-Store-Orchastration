@@ -1,0 +1,16 @@
+storeName: "medusa-store"
+baseDomain: "127.0.0.1.nip.io"
+
+image:
+  repository: "medusajs/medusa-starter-default"
+  tag: "latest"
+
+postgres:
+  password: "supersecretpassword"
+
+redis:
+  enabled: true
+
+resources:
+  requests: { cpu: "100m", memory: "256Mi" }
+  limits: { cpu: "500m", memory: "512Mi" }
