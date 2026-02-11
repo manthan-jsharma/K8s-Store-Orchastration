@@ -1,0 +1,15 @@
+ingress:
+  enabled: true
+  className: "nginx"
+  tls: true
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+
+persistence:
+  storageClass: "gp2"
+  size: 5Gi
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "300Mi"

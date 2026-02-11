@@ -1,101 +1,102 @@
 const express = require("express");
 const { exec } = require("child_process");
 const cors = require("cors");
-const rateLimit = require("express-rate-limit");
-const client = require("prom-client");
-const fs = require("fs");
-
 const app = express();
+
 app.use(express.json());
+app.use(cors());
 
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "DELETE"],
-  })
-);
-
-const CHART_PATH = process.env.CHART_PATH || "/app/charts/store-chart";
+const CHART_PATH = process.env.CHART_PATH || "./charts/woocommerce";
 const BASE_DOMAIN = process.env.BASE_DOMAIN || "127.0.0.1.nip.io";
+const ENVIRONMENT = process.env.NODE_ENV || "local";
 
-const register = new client.Registry();
-const storeCounter = new client.Counter({
-  name: "stores_created_total",
-  help: "Total stores created",
-});
-register.registerMetric(storeCounter);
-
-const createLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 5,
-  message: "Rate limit exceeded. Please try again later.",
-});
-
-const log = (msg) => {
-  const entry = `${new Date().toISOString()} | ${msg}\n`;
-  fs.appendFileSync("/tmp/audit.log", entry);
-  console.log(msg);
-};
-
-const runHelm = (cmd) =>
+const runCommand = (cmd) =>
   new Promise((resolve, reject) => {
     exec(cmd, (err, stdout, stderr) => {
-      if (err) reject(stderr);
-      else resolve(stdout);
+      if (err) {
+        console.error(`Error executing: ${cmd}`, stderr);
+        reject(stderr || err.message);
+      } else {
+        resolve(stdout.trim());
+      }
     });
   });
 
-const STORE_ENGINES = {
-  woocommerce: process.env.CHART_PATH_WOO || "./charts/woocommerce",
-  medusa: process.env.CHART_PATH_MEDUSA || "./charts/medusa",
-};
+app.get("/stores", async (req, res) => {
+  try {
+    const jsonOutput = await runCommand(
+      `kubectl get namespaces -l type=store -o json`
+    );
+    const namespaces = JSON.parse(jsonOutput).items;
 
-app.post("/stores", createLimiter, async (req, res) => {
-  const { storeName, storeType = "woocommerce" } = req.body;
+    const stores = namespaces.map((ns) => {
+      const name = ns.metadata.labels.storeName;
+      const status = ns.status.phase === "Active" ? "Ready" : "Terminating";
+      return {
+        name: name,
+        type: ns.metadata.labels.engine || "woocommerce",
+        status: status,
+        url: `http://${name}.${BASE_DOMAIN}`,
+        createdAt: ns.metadata.creationTimestamp,
+      };
+    });
 
-  if (!/^[a-z0-9-]+$/.test(storeName))
-    return res.status(400).json({ error: "Invalid Name" });
-  if (!STORE_ENGINES[storeType])
-    return res
-      .status(400)
-      .json({ error: "Invalid Store Type. Use 'woocommerce' or 'medusa'" });
-
-  const namespace = `ns-${storeName}`;
-  const dbPass = Math.random().toString(36).slice(-12);
-  const chartPath = STORE_ENGINES[storeType];
-
-  let setValues = `--set storeName=${storeName} --set baseDomain=${BASE_DOMAIN}`;
-
-  if (storeType === "woocommerce") {
-    setValues += ` --set mysql.rootPassword=${dbPass}`;
-  } else if (storeType === "medusa") {
-    setValues += ` --set postgres.password=${dbPass}`;
+    res.json(stores);
+  } catch (err) {
+    console.error(err);
+    res.json([]);
   }
+});
 
-  const cmd = `helm upgrade --install ${storeName} ${chartPath} \
-        --namespace ${namespace} \
-        --create-namespace \
-        --atomic \
-        --timeout 8m \
-        ${setValues}`;
+app.post("/stores", async (req, res) => {
+  const { storeName, storeType = "woocommerce" } = req.body;
+  const safeName = storeName.toLowerCase().replace(/[^a-z0-9-]/g, "");
+  const namespace = `store-${safeName}`;
+
+  const valuesFile =
+    ENVIRONMENT === "production" ? "values-prod.yaml" : "values-local.yaml";
+
+  const chart =
+    storeType === "medusa" ? "./charts/medusa" : "./charts/woocommerce";
+
+  const cmd = `
+    helm upgrade --install ${safeName} ${chart} \
+    --namespace ${namespace} \
+    --create-namespace \
+    --set storeName=${safeName} \
+    --set baseDomain=${BASE_DOMAIN} \
+    --values ${chart}/${valuesFile} \
+    --wait --timeout 5m
+  `;
 
   try {
-    log(`Provisioning ${storeType} store: ${storeName}`);
-    await runHelm(cmd);
-    storeCounter.inc({ type: storeType });
-    const port = storeType === "medusa" ? 9000 : 80;
+    console.log(`[Provisioning] Starting creation of ${safeName}...`);
 
-    res.json({
-      status: "ready",
-      type: storeType,
-      url: `http://${storeName}.${BASE_DOMAIN}`,
-      admin_details: {
-        user: storeType === "medusa" ? "admin@medusa-test.com" : "admin",
-        password: "password",
-      },
-    });
+    await runCommand(cmd);
+
+    await runCommand(
+      `kubectl label namespace ${namespace} type=store storeName=${safeName} engine=${storeType} --overwrite`
+    );
+
+    res.json({ status: "success", url: `http://${safeName}.${BASE_DOMAIN}` });
   } catch (err) {
-    log(`Failed: ${err}`);
+    console.error("Provisioning failed:", err);
     res.status(500).json({ error: "Provisioning failed", details: err });
   }
 });
+
+app.delete("/stores/:name", async (req, res) => {
+  const storeName = req.params.name;
+  const namespace = `store-${storeName}`;
+
+  try {
+    console.log(`[Teardown] Deleting ${storeName}...`);
+    await runCommand(`helm uninstall ${storeName} -n ${namespace}`);
+    await runCommand(`kubectl delete namespace ${namespace}`);
+    res.json({ status: "deleted" });
+  } catch (err) {
+    res.status(500).json({ error: "Delete failed", details: err });
+  }
+});
+
+app.listen(3000, () => console.log("Orchestrator running on port 3000"));

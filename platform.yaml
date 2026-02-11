@@ -1,0 +1,139 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: orchestrator-sa
+  namespace: platform
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: store-provisioner-role
+rules:
+  - apiGroups: ["", "apps", "networking.k8s.io"]
+    resources: ["namespaces", "deployments", "services", "ingresses", "persistentvolumeclaims", "secrets", "pods"]
+    verbs: ["create", "delete", "get", "list", "watch", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: store-provisioner-binding
+subjects:
+  - kind: ServiceAccount
+    name: orchestrator-sa
+    namespace: platform
+roleRef:
+  kind: ClusterRole
+  name: store-provisioner-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# 2. DEPLOYMENT: The Backend (Orchestrator)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  namespace: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orchestrator
+  template:
+    metadata:
+      labels:
+        app: orchestrator
+    spec:
+      serviceAccountName: orchestrator-sa # <--- This is vital!
+      containers:
+        - name: api
+          image: orchestrator:local
+          imagePullPolicy: Never # Use local image
+          env:
+            - name: CHART_PATH
+              value: "/app/charts/woocommerce"
+            - name: BASE_DOMAIN
+              value: "127.0.0.1.nip.io" # LOCAL DOMAIN
+            - name: NODE_ENV
+              value: "local"
+          ports:
+            - containerPort: 3000
+---
+# 3. SERVICE: Expose Backend Internally
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator-svc
+  namespace: platform
+spec:
+  selector:
+    app: orchestrator
+  ports:
+    - port: 80
+      targetPort: 3000
+---
+# 4. DEPLOYMENT: The Frontend (Dashboard)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard
+  namespace: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard
+  template:
+    metadata:
+      labels:
+        app: dashboard
+    spec:
+      containers:
+        - name: ui
+          image: dashboard:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard-svc
+  namespace: platform
+spec:
+  selector:
+    app: dashboard
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: platform-ingress
+  namespace: platform
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+rules:
+    - host: dashboard.127.0.0.1.nip.io
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dashboard-svc
+                port: 
+                  number: 80 
+          - path: /api/
+            pathType: Prefix
+            backend:
+              service:
+                name: orchestrator-svc
+                port: 
+                  number: 80
