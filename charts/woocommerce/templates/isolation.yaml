@@ -1,20 +1,8 @@
-apiVersion: v1
-kind: ResourceQuota
-metadata:
-  name: {{ .Values.storeName }}-quota
-  namespace: {{ .Release.Namespace }}
-spec:
-  hard:
-    pods: "5"
-    requests.cpu: "1"
-    requests.memory: "1Gi"
-    requests.storage: "5Gi"
----
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: {{ .Values.storeName }}-deny-all
-  namespace: {{ .Release.Namespace }}
+  name: "{{ .Values.storeName }}-deny-all"
+  namespace: store-{{ .Values.storeName }}
 spec:
   podSelector: {}
   policyTypes:
@@ -31,3 +19,15 @@ spec:
     - namespaceSelector:
         matchLabels:
           kubernetes.io/metadata.name: monitoring
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: "{{ .Values.storeName }}-quota"
+  namespace: store-{{ .Values.storeName }}
+spec:
+  hard:
+    pods: "5"
+    requests.cpu: "1"
+    requests.memory: "1Gi"
+    requests.storage: "5Gi"

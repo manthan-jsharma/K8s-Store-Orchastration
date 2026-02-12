@@ -2,9 +2,11 @@ ingress:
   enabled: true
   className: "nginx"
   tls: false
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
 
 persistence:
-  storageClass: "standard"
+  storageClass: "hostpath"
   size: 500Mi
 
 resources:
@@ -14,3 +16,22 @@ resources:
   limits:
     cpu: "500m"
     memory: "512Mi"
+mysql:
+  rootPassword: "changeme"
+  
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+  primary:
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"

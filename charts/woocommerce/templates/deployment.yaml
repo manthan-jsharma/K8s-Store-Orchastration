@@ -2,7 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.storeName }}
-  namespace: {{ .Release.Namespace }}
+  namespace: store-{{ .Values.storeName }}
+  labels:
+    app: {{ .Values.storeName }}
 spec:
   replicas: 1
   selector:
@@ -17,41 +19,58 @@ spec:
         runAsUser: 33
         fsGroup: 33
       containers:
-      - name: wordpress
-        image: wordpress:6.4-apache
-        resources: {{ toYaml .Values.resources | nindent 10 }}
-        env:
-        - name: WORDPRESS_DB_HOST
-          value: "127.0.0.1"
-        - name: WORDPRESS_DB_USER
-          value: "root"
-        - name: WORDPRESS_DB_PASSWORD
-          value: {{ .Values.mysql.rootPassword | quote }}
-        volumeMounts:
-        - name: wp-data
-          mountPath: /var/www/html
-        livenessProbe:
-          httpGet:
-            path: /wp-login.php
-            port: 80
-          initialDelaySeconds: 30
-          periodSeconds: 10
-      - name: mysql
-        image: mariadb:10.6
-        args:
-          - "--default-authentication-plugin=mysql_native_password"
-          - "--performance-schema=OFF"
-          - "--innodb-buffer-pool-size=64M" 
-        env:
-        - name: MYSQL_ROOT_PASSWORD
-          value: {{ .Values.mysql.rootPassword | quote }}
-        volumeMounts:
-        - name: db-data
-          mountPath: /var/lib/mysql
+        - name: wordpress
+          image: wordpress:6.4-apache
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 256Mi
+          env:
+            - name: WORDPRESS_DB_HOST
+              value: "127.0.0.1"
+            - name: WORDPRESS_DB_USER
+              value: "root"
+            - name: WORDPRESS_DB_PASSWORD
+              value: {{ .Values.mysql.rootPassword | quote }}
+          volumeMounts:
+            - name: wp-data
+              mountPath: /var/www/html
+          livenessProbe:
+            httpGet:
+              path: /wp-login.php
+              port: 80
+            initialDelaySeconds: 60
+            periodSeconds: 10
+        
+        - name: mysql
+          image: mariadb:10.6
+          args:
+            - "--default-authentication-plugin=mysql_native_password"
+            - "--performance-schema=OFF"
+            - "--innodb-buffer-pool-size=64M"
+          
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: {{ .Values.mysql.rootPassword | quote }}
+          volumeMounts:
+            - name: db-data
+              mountPath: /var/lib/mysql
+              
       volumes:
-      - name: wp-data
-        persistentVolumeClaim:
-          claimName: wp-pvc
-      - name: db-data
-        persistentVolumeClaim:
-          claimName: db-pvc
+        - name: wp-data
+          persistentVolumeClaim:
+            claimName: wp-pvc
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: db-pvc

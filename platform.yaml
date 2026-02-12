@@ -14,9 +14,28 @@ kind: ClusterRole
 metadata:
   name: store-provisioner-role
 rules:
-  - apiGroups: ["", "apps", "networking.k8s.io"]
-    resources: ["namespaces", "deployments", "services", "ingresses", "persistentvolumeclaims", "secrets", "pods"]
-    verbs: ["create", "delete", "get", "list", "watch", "patch"]
+  - apiGroups: ["", "apps", "networking.k8s.io", "policy", "rbac.authorization.k8s.io", "batch"]
+    resources:
+      - "namespaces"
+      - "deployments"
+      - "replicasets"
+      - "statefulsets"     
+      - "daemonsets"
+      - "services"
+      - "ingresses"
+      - "persistentvolumeclaims"
+      - "secrets"           
+      - "configmaps"        
+      - "pods"
+      - "jobs"
+      - "cronjobs"
+      - "networkpolicies"
+      - "resourcequotas"
+      - "limitranges"
+      - "serviceaccounts"   
+      - "roles"
+      - "rolebindings"
+    verbs: ["create", "delete", "get", "list", "watch", "patch", "update"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -31,7 +50,6 @@ roleRef:
   name: store-provisioner-role
   apiGroup: rbac.authorization.k8s.io
 ---
-# 2. DEPLOYMENT: The Backend (Orchestrator)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -47,22 +65,21 @@ spec:
       labels:
         app: orchestrator
     spec:
-      serviceAccountName: orchestrator-sa # <--- This is vital!
+      serviceAccountName: orchestrator-sa
       containers:
         - name: api
           image: orchestrator:local
-          imagePullPolicy: Never # Use local image
+          imagePullPolicy: Never
           env:
             - name: CHART_PATH
               value: "/app/charts/woocommerce"
             - name: BASE_DOMAIN
-              value: "127.0.0.1.nip.io" # LOCAL DOMAIN
+              value: "127.0.0.1.nip.io"
             - name: NODE_ENV
               value: "local"
           ports:
             - containerPort: 3000
 ---
-# 3. SERVICE: Expose Backend Internally
 apiVersion: v1
 kind: Service
 metadata:
@@ -75,7 +92,6 @@ spec:
     - port: 80
       targetPort: 3000
 ---
-# 4. DEPLOYMENT: The Frontend (Dashboard)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -116,24 +132,26 @@ metadata:
   name: platform-ingress
   namespace: platform
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
 spec:
   ingressClassName: nginx
-rules:
+  rules:
     - host: dashboard.127.0.0.1.nip.io
       http:
         paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: dashboard-svc
-                port: 
-                  number: 80 
-          - path: /api/
-            pathType: Prefix
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: orchestrator-svc
-                port: 
+                port:
+                  number: 80
+          - path: /()(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: dashboard-svc
+                port:
                   number: 80
