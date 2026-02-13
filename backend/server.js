@@ -172,8 +172,13 @@ app.delete("/api/stores/:name", async (req, res) => {
 
   try {
     logAudit("DELETE_START", { store: storeName });
-    await runCommand(`helm uninstall ${storeName} -n ${namespace}`);
-    await runCommand(`kubectl delete namespace ${namespace}`);
+    try {
+      await runCommand(`helm uninstall ${storeName} -n ${namespace}`);
+    } catch (e) {
+      console.log("Helm release already gone, proceeding to namespace delete");
+    }
+
+    await runCommand(`kubectl delete namespace ${namespace} --wait=false`);
     logAudit("DELETE_SUCCESS", { store: storeName });
     res.json({ status: "deleted" });
   } catch (err) {
@@ -181,5 +186,3 @@ app.delete("/api/stores/:name", async (req, res) => {
     res.status(500).json({ error: "Delete failed", details: err });
   }
 });
-
-app.listen(3000, () => console.log("Orchestrator running on port 3000"));
