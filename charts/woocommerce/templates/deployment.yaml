@@ -22,6 +22,8 @@ spec:
       containers:
         - name: wordpress
           image: wordpress:6.4-apache
+          ports:               
+            - containerPort: 80
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
@@ -48,21 +50,29 @@ spec:
           volumeMounts:
             - name: wp-data
               mountPath: /var/www/html
+          
           livenessProbe:
             httpGet:
               path: /wp-login.php
               port: 80
-            initialDelaySeconds: 60
+            initialDelaySeconds: 60 
             periodSeconds: 10
+          readinessProbe:         
+            httpGet:
+              path: /wp-login.php
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 5
         
         - name: mysql
           image: mariadb:10.6
+          ports:                 
+            - containerPort: 3306
           args:
             - "--default-authentication-plugin=mysql_native_password"
             - "--performance-schema=OFF"
             - "--innodb-buffer-pool-size=64M"
           
-          # HARDCODED RESOURCES (Safety First)
           resources:
             requests:
               cpu: "100m"
@@ -79,6 +89,17 @@ spec:
           volumeMounts:
             - name: db-data
               mountPath: /var/lib/mysql
+
+          livenessProbe:          
+            tcpSocket:
+              port: 3306           
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:          
+            exec:
+              command: ["sh", "-c", "mysqladmin ping -h 127.0.0.1 -u root -p$MYSQL_ROOT_PASSWORD"]
+            initialDelaySeconds: 10
+            periodSeconds: 5
               
       volumes:
         - name: wp-data
