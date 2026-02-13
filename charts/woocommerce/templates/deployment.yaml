@@ -17,10 +17,18 @@ spec:
     spec:
       securityContext:
         runAsUser: 33
+        runAsGroup: 33
         fsGroup: 33
       containers:
         - name: wordpress
           image: wordpress:6.4-apache
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 33
+            capabilities:
+              drop:
+                - ALL
           resources:
             limits:
               cpu: 500m
@@ -35,6 +43,8 @@ spec:
               value: "root"
             - name: WORDPRESS_DB_PASSWORD
               value: {{ .Values.mysql.rootPassword | quote }}
+            - name: WORDPRESS_DB_NAME
+              value: "wordpress"
           volumeMounts:
             - name: wp-data
               mountPath: /var/www/html
@@ -52,6 +62,7 @@ spec:
             - "--performance-schema=OFF"
             - "--innodb-buffer-pool-size=64M"
           
+          # HARDCODED RESOURCES (Safety First)
           resources:
             requests:
               cpu: "100m"
@@ -63,6 +74,8 @@ spec:
           env:
             - name: MYSQL_ROOT_PASSWORD
               value: {{ .Values.mysql.rootPassword | quote }}
+            - name: MYSQL_DATABASE
+              value: "wordpress"
           volumeMounts:
             - name: db-data
               mountPath: /var/lib/mysql

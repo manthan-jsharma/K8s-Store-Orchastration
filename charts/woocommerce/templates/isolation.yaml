@@ -31,3 +31,18 @@ spec:
     requests.cpu: "1"
     requests.memory: "1Gi"
     requests.storage: "5Gi"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: "{{ .Values.storeName }}-limits"
+  namespace: store-{{ .Values.storeName }}
+spec:
+  limits:
+  - default:
+      cpu: "500m"     
+      memory: "512Mi"
+    defaultRequest:
+      cpu: "100m"    
+      memory: "256Mi"
+    type: Container

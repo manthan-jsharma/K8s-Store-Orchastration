@@ -12,5 +12,8 @@ resources:
     cpu: "100m"
     memory: "256Mi"
 
+networkPolicy:
+  enabled: true
+
 mysql:
   rootPassword: "changeme"
