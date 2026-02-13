@@ -1,3 +1,31 @@
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   name: orchestrator-sa
+#   namespace: platform
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRole
+# metadata:
+#   name: platform-orchestrator-role
+# rules:
+# - apiGroups: ["", "apps", "networking.k8s.io", "batch"]
+#   resources: ["namespaces", "pods", "deployments", "services", "ingresses", "persistentvolumeclaims", "secrets", "configmaps", "events", "networkpolicies", "resourcequotas","limitranges", "jobs", "replicasets"]
+#   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# ---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: ClusterRoleBinding
+# metadata:
+#   name: platform-orchestrator-binding
+# subjects:
+# - kind: ServiceAccount
+#   name: orchestrator-sa
+#   namespace: platform
+# roleRef:
+#   kind: ClusterRole
+#   name: platform-orchestrator-role
+#   apiGroup: rbac.authorization.k8s.io
+
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -9,8 +37,8 @@ kind: ClusterRole
 metadata:
   name: platform-orchestrator-role
 rules:
-- apiGroups: ["", "apps", "networking.k8s.io"]
-  resources: ["namespaces", "pods", "deployments", "services", "ingresses", "persistentvolumeclaims", "secrets", "configmaps", "events", "networkpolicies", "resourcequotas","limitranges"]
+- apiGroups: ["", "apps", "networking.k8s.io", "batch", "rbac.authorization.k8s.io"]
+  resources: ["namespaces", "pods", "deployments", "services", "ingresses", "persistentvolumeclaims", "secrets", "configmaps", "events", "networkpolicies", "resourcequotas","replicasets", "limitranges", "jobs", "roles", "rolebindings"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

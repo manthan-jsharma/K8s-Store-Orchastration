@@ -1,15 +1,18 @@
 ingress:
   enabled: true
-  className: "nginx"
+  className: "traefik" 
   tls: true
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
 
 persistence:
-  storageClass: "gp2"
+  storageClass: "local-path" 
   size: 5Gi
 
 resources:
   requests:
     cpu: "100m"
     memory: "300Mi"
+  limits:
+    cpu: "500m"
+    memory: "1Gi"
