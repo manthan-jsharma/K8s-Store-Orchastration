@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: platform-ingress
+  namespace: platform
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: {{ .Values.ingress.className | default "nginx" }}
+  rules:
+    - host: dashboard.{{ .Values.ingress.baseDomain }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dashboard-svc 
+                port:
+                  number: 80
+
+    - host: api.{{ .Values.ingress.baseDomain }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: orchestrator-svc 
+                port:
+                  number: 80       

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dashboard
+  labels:
+    app: dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dashboard
+  template:
+    metadata:
+      labels:
+        app: dashboard
+    spec:
+      containers:
+        - name: ui
+          image: dashboard:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dashboard-svc
+spec:
+  selector:
+    app: dashboard
+  ports:
+    - port: 80
+      targetPort: 80

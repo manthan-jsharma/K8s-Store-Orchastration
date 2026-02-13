@@ -10,7 +10,7 @@ metadata:
   name: platform-orchestrator-role
 rules:
 - apiGroups: ["", "apps", "networking.k8s.io"]
-  resources: ["namespaces", "pods", "deployments", "services", "ingresses", "persistentvolumeclaims", "secrets", "configmaps", "events"]
+  resources: ["namespaces", "pods", "deployments", "services", "ingresses", "persistentvolumeclaims", "secrets", "configmaps", "events", "networkpolicies", "resourcequotas","limitranges"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
